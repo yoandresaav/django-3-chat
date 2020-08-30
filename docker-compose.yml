@@ -1,0 +1,45 @@
+version: "3"
+
+services: 
+  app:
+    build: 
+      context: .
+    ports: 
+      - "8000:8000"
+    volumes: 
+      - ./app:/app
+    command: >
+      sh -c  "python manage.py wait_for_db &&
+              python manage.py makemigrations &&
+              python manage.py migrate &&
+              python manage.py runserver 0.0.0.0:8000"
+    
+    environment:
+      - DB_HOST=db
+      - DB_NAME=app
+      - DB_USER=postgres
+      - DB_PASS=supersecretpassword
+    
+    depends_on: 
+      - db
+      - redis
+    links: 
+      - redis:redis
+  db:
+    image: postgres:13-alpine
+    environment: 
+      - POSTGRES_DB=app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=supersecretpassword
+  
+  redis:
+    image: redis:6-alpine
+    expose: 
+      - "6379"
+    volumes: 
+      - $PWD/redis-data:/var/lib/redis
+
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+# daphne -b 0.0.0.0 -p 8000 app.asgi:application
